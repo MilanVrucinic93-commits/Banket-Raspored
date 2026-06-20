@@ -148,6 +148,19 @@
     overflow-x: auto;
     padding: 20px 24px 40px;
   }
+  .table-wrap.fit-screen {
+    overflow-x: hidden;
+  }
+  .table-wrap.fit-screen table {
+    width: 100%;
+    min-width: unset;
+    font-size: .6rem;
+  }
+  .table-wrap.fit-screen .cell-time { font-size: .75rem; }
+  .table-wrap.fit-screen .cell-loc  { font-size: .58rem; }
+  .table-wrap.fit-screen td.name-cell { min-width: 80px; font-size: .65rem; }
+  .table-wrap.fit-screen td.shift-cell { min-width: unset; padding: 2px 1px; }
+  .table-wrap.fit-screen .cell-inner { min-height: 28px; padding: 2px 1px; }
 
   table {
     border-collapse: collapse;
@@ -544,6 +557,7 @@
   <button class="btn btn-secondary" onclick="changeWeek(1)">Sledeća &#8594;</button>
   <span class="spacer"></span>
   <button class="btn btn-primary" onclick="saveData()">💾 Sačuvaj</button>
+  <button class="btn btn-ghost" id="fitBtn" onclick="toggleFit()">⛶ Fit</button>
   <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV</button>
   <button class="btn btn-ghost" onclick="exportJSON()">⬆ Backup</button>
   <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">⬇ Restore</button>
@@ -1072,6 +1086,25 @@ function renderAnalytics() {
 
     container.appendChild(card);
   });
+}
+
+// ─── FIT TO SCREEN ───────────────────────────────────────────────────────────
+let fitMode = false;
+function toggleFit() {
+  fitMode = !fitMode;
+  const wrap = document.querySelector('.table-wrap');
+  const btn = document.getElementById('fitBtn');
+  if (fitMode) {
+    wrap.classList.add('fit-screen');
+    btn.textContent = '⛶ Normal';
+    btn.classList.remove('btn-ghost');
+    btn.classList.add('btn-secondary');
+  } else {
+    wrap.classList.remove('fit-screen');
+    btn.textContent = '⛶ Fit';
+    btn.classList.remove('btn-secondary');
+    btn.classList.add('btn-ghost');
+  }
 }
 
 // ─── PRINT ───────────────────────────────────────────────────────────────────
