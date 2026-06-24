@@ -10,6 +10,29 @@
 <meta name="apple-mobile-web-app-title" content="Banket">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBR9jpshgtrX4W3momokULqII3vUf4KZJU",
+    authDomain: "sc-raspored-1725d.firebaseapp.com",
+    databaseURL: "https://sc-raspored-1725d-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "sc-raspored-1725d",
+    storageBucket: "sc-raspored-1725d.firebasestorage.app",
+    messagingSenderId: "965854279129",
+    appId: "1:965854279129:web:29737afb41e5cbc31515c8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Expose to global scope
+  window._fbSet = (path, data) => set(ref(db, path), data);
+  window._fbListen = (path, cb) => onValue(ref(db, path), snap => cb(snap.val()));
+  window._fbReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
@@ -548,7 +571,13 @@
 
 <div class="app-header">
   <h1><span class="logo-dot"></span>Banket Raspored</h1>
-  <div style="font-size:.78rem;opacity:.75;letter-spacing:.05em;">SAVA CENTAR</div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="syncStatus" style="font-size:.72rem;opacity:.75;display:flex;align-items:center;gap:5px;">
+      <span id="syncDot" style="width:8px;height:8px;border-radius:50%;background:#aaa;display:inline-block;"></span>
+      <span id="syncText">Povezivanje...</span>
+    </div>
+    <div style="font-size:.78rem;opacity:.75;letter-spacing:.05em;">SAVA CENTAR</div>
+  </div>
 </div>
 
 <div class="week-nav">
@@ -677,6 +706,35 @@ let editTarget = null; // { empIdx, dayIdx }
 
 // data structure: { weekKey: { employees: [{name, days:[{time,loc,off,hl}]}] } }
 let allData = JSON.parse(localStorage.getItem(SN) || '{}');
+let fbReady = false;
+
+// ─── FIREBASE SYNC ───────────────────────────────────────────────────────────
+function setSyncStatus(connected) {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  if (!dot) return;
+  dot.style.background = connected ? '#4CAF50' : '#f44336';
+  txt.textContent = connected ? 'Sinhronizovano ✓' : 'Offline';
+}
+
+function initFirebase() {
+  fbReady = true;
+  setSyncStatus(true);
+  // Listen for real-time changes from Firebase
+  window._fbListen('banket', data => {
+    if (data) {
+      allData = data;
+      localStorage.setItem(SN, JSON.stringify(allData));
+      render();
+    }
+  });
+}
+
+if (window._fbReady) {
+  initFirebase();
+} else {
+  window.addEventListener('firebase-ready', initFirebase);
+}
 
 function weekKey(d) {
   return d.toISOString().slice(0,10);
@@ -909,6 +967,9 @@ function changeWeek(dir) {
 // ─── PERSIST ─────────────────────────────────────────────────────────────────
 function saveData(notify = true) {
   localStorage.setItem(SN, JSON.stringify(allData));
+  if (fbReady && window._fbSet) {
+    window._fbSet('banket', allData).catch(() => {});
+  }
   if (notify) showToast('Raspored sačuvan ✓');
 }
 function showToast(msg) {
@@ -949,6 +1010,7 @@ function importJSON(event) {
       const imported = JSON.parse(e.target.result);
       allData = imported;
       localStorage.setItem(SN, JSON.stringify(allData));
+      if (fbReady && window._fbSet) window._fbSet('banket', allData).catch(() => {});
       render();
       showToast('Podaci uspešno učitani ✓');
     } catch {
