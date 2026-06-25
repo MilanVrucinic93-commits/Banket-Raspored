@@ -10,22 +10,30 @@
 <meta name="apple-mobile-web-app-title" content="Banket">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBR9jpshgtrX4W3momokULqII3vUf4KZJU",
-    authDomain: "sc-raspored-1725d.firebaseapp.com",
-    databaseURL: "https://sc-raspored-1725d-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "sc-raspored-1725d",
-    storageBucket: "sc-raspored-1725d.firebasestorage.app",
-    messagingSenderId: "965854279129",
-    appId: "1:965854279129:web:29737afb41e5cbc31515c8"
+  const FB_URL = 'https://sc-raspored-1725d-default-rtdb.europe-west1.firebasedatabase.app/banket.json';
+
+  window._fbSet = async (path, data) => {
+    await fetch(FB_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
   };
-  firebase.initializeApp(firebaseConfig);
-  const _db = firebase.database();
-  window._fbSet = (path, data) => _db.ref(path).set(data);
-  window._fbListen = (path, cb) => _db.ref(path).on('value', snap => cb(snap.val()));
+
+  window._fbListen = (path, cb) => {
+    // Poll every 5 seconds
+    const poll = async () => {
+      try {
+        const res = await fetch(FB_URL);
+        const data = await res.json();
+        cb(data);
+      } catch(e) {}
+    };
+    poll();
+    setInterval(poll, 5000);
+  };
+
   window._fbReady = true;
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
